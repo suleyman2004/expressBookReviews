@@ -1,13 +1,12 @@
 const express = require('express');
 let books = require("./booksdb.js");
-let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
-const bodyParser=require("body-parser");
+const bodyParser = require("body-parser");
 
 public_users.use(bodyParser.json());
 public_users.use(bodyParser.urlencoded({
-    extended:true
+    extended: true
 }))
 
 
@@ -46,39 +45,61 @@ public_users.post("/register", (req, res) => {
 });
 
 // Get the book list available in the shop
-public_users.get('/', function (req, res) {
-    res.send(JSON.stringify(books, null, 4));
+public_users.get('/', async function (req, res) {
+    try {
+        const response = await axios.get('https://dhannyyewhan-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ais/');
+        res.status(200).send(JSON.stringify(books, null, 4));
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching book list', error: error.message });
+    }
 });
 
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn', function (req, res) {
-    const isbn = req.params.isbn;
-    if (books[isbn]) {
-        res.send(books[isbn]);
-    } else {
-        return res.send(`Unable to find book number ${isbn}`)
+public_users.get('/isbn/:isbn', async function (req, res) {
+    try {
+        const response = await axios.get(`https://dhannyyewhan-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ais/isbn/${isbn}`);
+        const isbn = req.params.isbn;
+        if (books[isbn]) {
+            res.status(200).send(books[isbn]);
+        } else {
+            return res.status(404).send(`Unable to find book number ${isbn}`)
+        }
+    } catch (error) {
+        res.status(404).send(`Unable to find website`);
     }
 });
 
 // Get book details based on author
-public_users.get('/author/:author', function (req, res) {
-    const author = req.params.author;
-    const filteredAuthors = Object.values(books).filter(book => book.author === author);
-    if (filteredAutorss > 0) {
-        res.send(filteredAuthors);
-    } else {
-        res.send("No books found by this author")
+public_users.get('/author/:author', async function (req, res) {
+    try {
+        const response = await axios.get(`https://dhannyyewhan-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ais/author/${author}`);
+        const author = req.params.author;
+        const filteredAuthors = Object.values(books).filter(book => book.author === author);
+        if (filteredAutorss > 0) {
+            res.send(filteredAuthors);
+        } else {
+            res.status(404).send("No books found by this author");
+        }
+    } catch (error) {
+        res.status(404).send(`Unable to find website`);
     }
 });
 
+
+
 // Get all books based on title
-public_users.get('/title/:title', function (req, res) {
-    const title = req.params.title.toLowerCase();
-    const findTitle = Object.values(books).find(book => book.title.toLowerCase() === title);
-    if (findTitle) {
-        res.send(findTitle);
-    } else {
-        res.send("No books found by this title")
+public_users.get('/title/:title', async function (req, res) {
+    try {
+        const response = await axios.get(`https://dhannyyewhan-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ais/title/${title}`);
+        const title = req.params.title.toLowerCase();
+        const findTitle = Object.values(books).find(book => book.title.toLowerCase() === title);
+        if (findTitle) {
+            res.send(findTitle);
+        } else {
+            res.status(404).send("No books found by this title");
+        }
+    } catch (error) {
+        res.status(404).send(`Unable to find website`);
     }
 });
 

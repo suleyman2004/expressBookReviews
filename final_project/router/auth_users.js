@@ -10,13 +10,7 @@ regd_users.use(bodyParser.urlencoded({
     extended: true
 }))
 
-const isValid = (username) => { //returns boolean
-    //write code to check is the username is valid
-}
 
-const authenticatedUser = (username, password) => { //returns boolean
-    //write code to check if username and password match the one we have in records.
-}
 
 //only registered users can login
 regd_users.post("/login", (req, res) => {
@@ -62,33 +56,69 @@ regd_users.post("/login", (req, res) => {
 regd_users.put("/auth/review/:isbn", (req, res) => {
     //Write your code here
     const isbn = req.params.isbn;
-    let friend = friends[isbn];  // Retrieve friend object associated with email
+    const review = req.query.review;
 
-    if (friend) {  // Check if friend exists
-        let DOB = req.body.DOB;
-        let firstName= req.body.firstName;
-        let lastName=req.body.lastName;
-        // Update DOB if provided in request body
-        if (DOB) {
-            friend["DOB"] = DOB;
-        }
-        if (firstName) {
-            friend["firstName"] = firstName;
-        }
-        if (lastName) {
-            friend["lastName"] = lastName;
-        }
+    // Get the username from the session
+    const username = req.session.authorization?.username;
 
-        friends[email] = friend;  // Update friend details in 'friends' object
-        res.send(`Friend with the email ${email} updated.`);
-    } else {
-        // Respond if friend with specified email is not found
-        res.send("Unable to find friend!");
+    // Check if user is logged in
+    if (!username) {
+        return res.status(401).json({ message: 'User not logged in' });
     }
+
+    // Check if the ISBN exists in the books object
+    if (!books[isbn]) {
+        return res.status(404).json({ message: 'Book not found' });
+    }
+
+    // Check if review is provided in the query
+    if (!review) {
+        return res.status(400).json({ message: 'Review text is missing' });
+    }
+
+    // If the reviews object does not exist for the book, create it
+    if (!books[isbn].reviews) {
+        books[isbn].reviews = {};
+    }
+
+    // Add or modify the review for the current user
+    books[isbn].reviews[username] = review;
+
+    return res.status(200).json({
+        message: 'Review successfully added or modified',
+        reviews: books[isbn].reviews
+    });
 });
-    return res.status(300).json({ message: "Yet to be implemented" });
+
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    const isbn = req.params.isbn;
+
+    // Get the username from the session
+    const username = req.session.authorization?.username;
+
+    // Check if the user is logged in
+    if (!username) {
+        return res.status(401).json({ message: 'User not logged in' });
+    }
+
+    // Check if the book exists by ISBN
+    if (!books[isbn]) {
+        return res.status(404).json({ message: 'Book not found' });
+    }
+
+    // Check if the review exists for the user
+    if (!books[isbn].reviews || !books[isbn].reviews[username]) {
+        return res.status(404).json({ message: 'Review not found for this user' });
+    }
+
+    // Delete the user's review
+    delete books[isbn].reviews[username];
+
+    return res.status(200).json({
+        message: 'Review successfully deleted',
+        reviews: books[isbn].reviews
+    });
 });
 
 module.exports.authenticated = regd_users;
-module.exports.isValid = isValid;
 module.exports.users = users;
